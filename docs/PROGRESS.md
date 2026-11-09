@@ -1,7 +1,7 @@
 # PROGRESS — VoicePrompt
 
 ## État actuel
-Jalon A atteint (phases 0 + 1) : STT français validé par HTTP réel via FreeLLMAPI local, sans aucune clé fournisseur. STOP avant Jalon B, en attente de ton accord.
+Jalon B en cours de test réel : MVP opérationnel (voiceprompt.py), app lancée (pythonw), en attente de ton test interactif (hotkey, dictée, collage dans OpenCode).
 
 ## Fait
 - Phase 0 — Audit machine (10/11/2026) :
@@ -17,13 +17,21 @@ Jalon A atteint (phases 0 + 1) : STT français validé par HTTP réel via FreeLL
   - `POST http://127.0.0.1:31415/v1/audio/transcriptions`, `model=whisper-large-v3`, `language=fr` → HTTP 200, texte correct, **3,53 s**.
   - `whisper-large-v3-turbo` → HTTP 200, **2,85 s** mais moins fidèle sur les termes techniques.
   - WAV 44,1 kHz stéréo 16 bits accepté nativement → pas de conversion 16 kHz.
+- Jalon B — MVP :
+  - `voiceprompt.py` (1 fichier) : hotkey Win32, enregistrement mono au samplerate natif du micro (sounddevice), RMS seuil `.env`, bips (`winsound`), barre système (pystray, états colorés), fenêtre de confirmation Tkinter sombre (Injecter/Copier/Effacer, Entrée/Échap), collage ciblé HWND+PID (`SetForegroundWindow` + SendInput Ctrl+V), sauvegarde/restauration du presse-papiers (uniquement si inchangé), transcription gardée en mémoire + entrée « Réessayer la transcription » après erreur STT.
+  - Threads : Tkinter principal (file `queue.Queue` + `after()`), pystray, hotkey, recorder, STT, injection — aucune écriture UI hors thread Tk.
+  - Logs `voiceprompt.log` : timestamps préparation audio / STT / injection, RMS loggée, jamais la clé.
+  - Tests composants réels OK : presse-papiers set/get/restore, détection fenêtre active (PID + exe), verify_target (fenêtre vivante vs fenêtre morte), STT HTTP 200.
 - Fichiers : `docs/SPEC.md` (copie ta spec), `docs/STT_SETUP.md`, `.env` (clé + port + cible), `AGENTS.md`, `stt_test.py` (script de re-test).
 - `.gitignore` créé avant tout commit éventuel (`.env` exclu).
 
-## Reste à faire (Jalon B, après ton accord)
-- Application MVP : hotkey `RegisterHotKey`, enregistrement sounddevice→WAV natif mono, contrôle RMS, barre système pystray, fenêtre confirm Tkinter, collage HWND/PID-ciblé, sauvegarde/restauration presse-papiers, gestion d'erreurs claire, timestamps de performance.
-- Python : installer `sounddevice soundfile pystray requests` (Python 3.10.11 déjà présent).
-- Test réel des 10 phrases françaises (ta voix), test du collage dans OpenCode, tests d'erreurs.
+## Reste à faire (fin de Jalon B)
+- Ton test interactif :
+  1. Ctrl+Alt+Espace → parler → Ctrl+Alt+Espace → fenêtre confirm → « Injecter » dans OpenCode (vérifier le collage réel).
+  2. Test du mode auto : `INJECT_MODE=auto` dans `.env`.
+  3. Tests d'erreur : réseau coupé, audio silencieux, presse-papiers modifié pendant le collage, fenêtre OpenCode fermée avant l'injection.
+  4. 10 phrases de test réelles (ton micro, en respectant le rythme OVH : max 2 req/min).
+- Créer le raccourci Windows (pythonw, sans terminal) après validation du MVP.
 
 ## Problèmes ouverts
 - Le champ `prompt` (contexte lexical) n'est pas transmis à l'adaptateur OVH (code FreeLLMAPI vérifié) : la liste de termes techniques de SPEC §3 ne peut pas être injectée par ce paramètre. Whisper v3 les transcrit déjà convenablement sur nos tests ; à re-vérifier lors du test des 10 phrases.
@@ -34,3 +42,5 @@ Jalon A atteint (phases 0 + 1) : STT français validé par HTTP réel via FreeLL
 - Passage par FreeLLMAPI local (jamais d'appel direct OVH) : auth centralisée, clé `.env` unique, selon règle « commencer par FreeLLMAPI ».
 - `model=whisper-large-v3` explicite plutôt que `auto` : `auto` peut basculer un jour sur un autre fournisseur si une clé est ajoutée ; résultat reproductible garanti.
 - Lecture de la clé via sqlite en lecture seule puis copie dans `.env` : clé locale, aucun achat, aucune soumission de clé à un service tiers.
+- Jalon B : presse-papiers et bips via modules embarqués (pywin32, winsound) plutôt que bibliothèques tierces supplémentaires — moins de dépendances, même comportement.
+- Jalon B : ajout de l'entrée « Réessayer la transcription » dans le menu de l'icône — exigé par SPEC §3 (« l'audio reste disponible pour un nouvel essai »).
