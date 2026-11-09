@@ -146,28 +146,16 @@ def clipboard_set_text(text, attempts=5):
 
 # ---------------------------------------------------------------- Ctrl+V
 
-class _KBINPUT(ctypes.Structure):
-    _fields_ = [("wVk", wt.WORD), ("wScan", wt.WORD), ("dwFlags", wt.DWORD),
-                ("time", wt.DWORD), ("dwExtraInfo", ctypes.POINTER(wt.ULONG))]
-
-class _INPUT_U(ctypes.Union):
-    _fields_ = [("ki", _KBINPUT)]
-
-class KEYS(ctypes.Structure):
-    _anonymous_ = ("u",)
-    _fields_ = [("type", wt.DWORD), ("u", _INPUT_U)]
-
 def send_ctrl_v():
-    def key(vk, up=False):
-        i = KEYS(type=1)
-        i.ki = _KBINPUT(vk, 0, 2 if up else 0, 0, None)
-        user32.SendInput(1, ctypes.byref(i), ctypes.sizeof(KEYS))
-    key(VK_CONTROL)
-    time.sleep(0.02)
-    key(VK_KEY_V)
-    time.sleep(0.02)
-    key(VK_KEY_V, up=True)
-    key(VK_CONTROL, up=True)
+    """Ctrl+V via keybd_event (pywin32) — SendInput ctypes trop choquant ici."""
+    import win32api
+    down, up = 0, 0x0002  # KEYEVENTF_KEYUP
+    win32api.keybd_event(VK_CONTROL, 0, down, 0)
+    time.sleep(0.03)
+    win32api.keybd_event(VK_KEY_V, 0, down, 0)
+    time.sleep(0.05)
+    win32api.keybd_event(VK_KEY_V, 0, up, 0)
+    win32api.keybd_event(VK_CONTROL, 0, up, 0)
 
 def bring_to_foreground(hwnd):
     """SetForegroundWindow en gérant la restriction Windows (attach thread input)."""
