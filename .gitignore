@@ -1,4 +1,6 @@
 .env
+voiceprompt.log
+rec_*.wav
 __pycache__/
 *.pyc
 *.wav
