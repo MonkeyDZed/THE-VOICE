@@ -4,8 +4,7 @@
 Jalon B : injection validée en réel (collage OK quand focus OpenCode). STT basculé sur Groq + prompt lexical après dérive constatée sur OVH — fidélité nettement améliorée, latence 1,2 s. Reste du jalon : tests d'erreur + 10 phrases réelles.
 
 ## Fait
-- Phase 0 — Audit machine (10/11/2026) :
-  - FreeLLMAPI Desktop 0.16.23, installé dans `C:\Users\maste\AppData\Local\Programs\freellmapi-desktop` ; données/config dans `%APPDATA%\FreeLLMAPI`.
+- Phase 0 — Audit machine (10/11/2026) :  - FreeLLMAPI Desktop 0.16.23, installé dans `C:\Users\maste\AppData\Local\Programs\freellmapi-desktop` ; données/config dans `%APPDATA%\FreeLLMAPI`.
   - Processus : 3 processus `FreeLLMAPI.exe` ; serveur local sur `127.0.0.1:31415` (mesuré, non 3001).
   - Dashboard : SPA servie sur la racine (toute route inconnue renvoie l'index HTML). API protégée : 401 sans clé.
   - Auth : clé API unifiée `freellmapi-…` stockée dans `freeapi.db` (table `settings`), acceptée en Bearer ou `X-API-Key`. Lue en lecture seule, copiée dans `.env`.
@@ -23,14 +22,15 @@ Jalon B : injection validée en réel (collage OK quand focus OpenCode). STT bas
   - Logs `voiceprompt.log` : timestamps préparation audio / STT / injection, RMS loggée, jamais la clé.
   - Tests composants réels OK : presse-papiers set/get/restore, détection fenêtre active (PID + exe), verify_target (fenêtre vivante vs fenêtre morte), STT HTTP 200.
   - Fix injection : `SendInput` (ctypes) rejeté silencieusement par Windows x64 (struct 32 octets vs 40 exigés) → remplacé par `keybd_event` (pywin32). Injection validée en réel par l'utilisateur, latences STT mesurées 1,5 à 2,4 s pour 12 à 21 s d'audio.
+  - Test des 10 phrases réelles (Groq + prompt, diction en serie) : latences STT 0,39-0,80 s, injection ~0,4 s → total < 1,2 s (objectif < 3 s tenu). Fidélité : 4/10 quasi parfait (#4/#3/#5/#6), 4/10 avec 1-2 homophones (« Gemini »→« Gimini », « DeepSeek »→« DEEPSY », « commit »→« commis », « SQLite »→« SQL »), 2/10 dérivés sérieusement (#2 endpoint/authentification, #10 « base de données »→« l'ambiance du journal », modèle d'y charrier). Détails dans les logs `voiceprompt.log`.
+  - 10/10 injections réproduites (collage ok, presse-papiers intacts, ~0,4 s).
   - Limité (retour utilisateur) : dérive de transcription sur phrases techniques : « jalon bloquant » → « genre d'encre », « gratuit sur ton FreeLLMAPI Desktop » → « à l'âme d'escroc ». Cause probable : l'adaptateur OVH ne transmet pas le champ `prompt` (contexte lexical indisponible) et Whisper diverge sans contexte. Voir « Problèmes ouverts ».
 - Fichiers : `docs/SPEC.md` (copie ta spec), `docs/STT_SETUP.md`, `.env` (clé + port + cible), `AGENTS.md`, `stt_test.py` (script de re-test).
 - `.gitignore` créé avant tout commit éventuel (`.env` exclu).
 
 ## Reste à faire (fin de Jalon B)
-- Choix fournisseur STT après dérive constatée (Groq via clé gratuite / rester OVH) — décision humaine.
+- Itération fidélité : enrichir le prompt (endpoint, authentification, base de données, script, branche…) et re-tester #2 et #10 redites.
 - Tests d'erreur réels : réseau coupé, audio silencieux, presse-papiers modifié pendant le collage, fenêtre OpenCode fermée avant l'injection.
-- 10 phrases de test réelles (ta voix, français technique ; rythme ≤ 2 req/min tant que OVH).
 - Mode auto `INJECT_MODE=auto` (test du collage direct).
 - Raccourci Windows (pythonw, sans terminal) à la fin du jalon.
 
@@ -43,6 +43,7 @@ Jalon B : injection validée en réel (collage OK quand focus OpenCode). STT bas
 - Passage par FreeLLMAPI local (jamais d'appel direct fournisseur) : auth centralisée, clé `.env` unique, selon règle « commencer par FreeLLMAPI ».
 - `model=whisper-large-v3` explicite plutôt que `auto` : `auto` irait sur Groq *turbo* (plus rapide mais moins fidèle, vérifié), le filtre par id garde `whisper-large-v3`.
 - Prompt lexical = les 20 termes de SPEC §3, envoyés sur chaque requête : validé par A/B réel (améliore sans fausser).
+- Test des 10 phrases : les dérives homophones (« commis » pour « commit », « Gimini ») subsistent en diction rapide ; le prompt aide sur les termes exacts mais ne gomme pas toutes les prononciations. Décision ouverte : enrichir le prompt, ou statuer que ce niveau de fidélité suffit (aucune reformulation automatique — SPEC).
 - Lecture de la clé via sqlite en lecture seule puis copie dans `.env` : clé locale, aucun achat, aucune soumission de clé à un service tiers.
 - Jalon B : presse-papiers et bips via modules embarqués (pywin32, winsound) plutôt que bibliothèques tierces supplémentaires — moins de dépendances, même comportement.
 - Jalon B : ajout de l'entrée « Réessayer la transcription » dans le menu de l'icône — exigé par SPEC §3 (« l'audio reste disponible pour un nouvel essai »).
