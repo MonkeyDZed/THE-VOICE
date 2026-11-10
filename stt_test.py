@@ -16,6 +16,7 @@ if not key:
     sys.exit(1)
 
 model = sys.argv[1] if len(sys.argv) > 1 else "auto"
+prompt = sys.argv[2] if len(sys.argv) > 2 else None
 
 boundary = "----VoicePrompt" + uuid.uuid4().hex[:12]
 
@@ -34,6 +35,8 @@ t0 = time.perf_counter()
 body = b""
 body += part_field("model", model)
 body += part_field("language", "fr")
+if prompt:
+    body += part_field("prompt", prompt)
 body += part_field("response_format", "json")
 body += part_file("file", "test.wav", audio, "audio/wav")
 body += f"--{boundary}--\r\n".encode()

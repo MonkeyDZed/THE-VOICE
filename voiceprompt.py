@@ -59,6 +59,13 @@ PASTE_DELAY_MS = int(ENV.get("PASTE_RESTORE_DELAY_MS", "300"))
 RMS_SILENCE = float(ENV.get("RMS_SILENCE_THRESHOLD", "0.005"))
 MAX_RECORD_S = int(ENV.get("MAX_RECORD_SECONDS", "120"))
 
+# Contexte lexical transmis à Groq (paramètre prompt) — SPEC §3
+TECH_TERMS = (
+    "OpenCode, GLM, Claude, Gemini, DeepSeek, Python, TypeScript, JavaScript, "
+    "React, Next.js, Prisma, Supabase, PostgreSQL, SQLite, API, MCP, GitHub, "
+    "Git, PowerShell"
+)
+
 HOTKEY_REG_ID = 0x1CBB
 MOD_ALT, MOD_CONTROL = 0x1, 0x2
 WM_HOTKEY = 0x0312
@@ -375,7 +382,8 @@ class App:
                     f"{BASE_URL}/v1/audio/transcriptions",
                     headers={"Authorization": f"Bearer {API_KEY}"},
                     files={"file": (os.path.basename(path), f, "audio/wav")},
-                    data={"model": STT_MODEL, "language": "fr", "response_format": "json"},
+                    data={"model": STT_MODEL, "language": "fr",
+                          "prompt": TECH_TERMS, "response_format": "json"},
                     timeout=30)
             r.raise_for_status()
             text = r.json().get("text")
