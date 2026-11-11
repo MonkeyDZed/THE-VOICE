@@ -19,6 +19,7 @@ import ctypes.wintypes as wt
 import logging
 import os
 import queue
+import re
 import sys
 import threading
 import time
@@ -259,12 +260,31 @@ def beep_err():   winsound.Beep(200, 250)
 
 # ---------------------------------------------------------------- transcriptions fantômes
 
-GHOST_FILLERS = {"ok", "ok.", "merci.", "merci d'avoir regardé", "please subscribe",
-                 "thanks for watching", "you", "bye", "bye.", "au revoir", "..."}
+GHOST_FILLERS = {"ok", "ok.", "merci.", "bye", "bye.", "au revoir", "au revoir !", "à bientôt", "à bientôt !", "..."}
+
+# Hallucinations typiques de Whisper sur silence (entraîné sur des sous-titres YouTube)
+GHOST_PATTERNS = [
+    r"merci d'avoir regardé",
+    r"merci d'avoir regardée",
+    r"thanks for watching",
+    r"sous-titr\w*",          # sous-titres, sous-titrage, sous-titré…
+    r"amara\.org",
+    r"abonnez-vous",
+    r"subscribe",
+]
 
 def transcript_ok(text, dur):
     t = text.strip().lower()
-    return len(t) > 1 and not (dur < 1.5 and t in GHOST_FILLERS)
+    if len(t) <= 1:
+        return False
+    if dur is not None and dur < 1.5 and t in GHOST_FILLERS:
+        return False
+    # phrase-cliché hallucinatoire de Whisper : court et typique
+    if len(t) < 80:
+        for pat in GHOST_PATTERNS:
+            if re.search(pat, t):
+                return False
+    return True
 
 def audio_ok(rms, dur):
     """Rejette uniquement le silence quasi total, jamais une voix faible."""
@@ -536,6 +556,7 @@ class App:
             self.set_state("erreur")
             self.icon.notify("Transcription vide ou fantôme détectée — réessaie.",
                              "VoicePrompt")
+            log.info("rejet fantôme: %s", text[:120])
             beep_err()
             return
         self.last_text = text
