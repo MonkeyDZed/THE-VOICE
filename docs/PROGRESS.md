@@ -24,14 +24,19 @@ Jalon B : injection validée en réel (collage OK quand focus OpenCode). STT bas
   - Fix injection : `SendInput` (ctypes) rejeté silencieusement par Windows x64 (struct 32 octets vs 40 exigés) → remplacé par `keybd_event` (pywin32). Injection validée en réel par l'utilisateur, latences STT mesurées 1,5 à 2,4 s pour 12 à 21 s d'audio.
   - Test des 10 phrases réelles (Groq + prompt, diction en serie) : latences STT 0,39-0,80 s, injection ~0,4 s → total < 1,2 s (objectif < 3 s tenu). Fidélité : 4/10 quasi parfait (#4/#3/#5/#6), 4/10 avec 1-2 homophones (« Gemini »→« Gimini », « DeepSeek »→« DEEPSY », « commit »→« commis », « SQLite »→« SQL »), 2/10 dérivés sérieusement (#2 endpoint/authentification, #10 « base de données »→« l'ambiance du journal »). Détails dans les logs `voiceprompt.log`.
   - Re-test des phrases #2/#9/#10 le lendemain, micro à ~30 cm (au lieu de 1 m) : **transcription mot pour mot** des trois phrases + « RMS » correctement orthographié sur dictées libres. Cause racine des dérives : signal RMS 0,010 (trop loin) vs 0,037 (proche). Aucun changement de code ; recommandation d'usage : parler près du micro.
+  - Tests d'erreur (validés en réel) :
+    - Test 1 silence : RMS 0,012 < seuil 0,015 → rejeté localement, aucune requête STT, aucune hallucination. Correctifs associés : seuil 0,005→0,015 (bruit ambiant mesuré 0,011) + liste de patterns hallucination Whisper (« Merci d'avoir regardé… », « sous-titres », « amara.org »…).
+    - Test 2 fenêtre fermée avant injection : `injection echouee: la fenêtre OpenCode mémorisée a été fermée` (log 23:38), aucun collage, transcription conservée.
+    - Test 4 réseau coupé : survenu réellement pendant la session (FreeLLMAPI injoignable côté amont) ; message d'erreur affiché, push Git en échec simultané. Comportement conforme.
+  - Correctif SPEC §5 : la fenêtre de confirmation de VoicePrompt ne peut plus devenir la cible — la cible OpenCode mémorisée au début de l'enregistrement est conservée même si une fenêtre VoicePrompt est au premier plan (constaté par capture utilisateur : cible PID pythonw.exe).
   - 10/10 injections réproduites (collage ok, presse-papiers intacts, ~0,4 s).
   - Limité (retour utilisateur) : dérive de transcription sur phrases techniques : « jalon bloquant » → « genre d'encre », « gratuit sur ton FreeLLMAPI Desktop » → « à l'âme d'escroc ». Cause probable : l'adaptateur OVH ne transmet pas le champ `prompt` (contexte lexical indisponible) et Whisper diverge sans contexte. Voir « Problèmes ouverts ».
 - Fichiers : `docs/SPEC.md` (copie ta spec), `docs/STT_SETUP.md`, `.env` (clé + port + cible), `AGENTS.md`, `stt_test.py` (script de re-test).
 - `.gitignore` créé avant tout commit éventuel (`.env` exclu).
 
 ## Reste à faire (fin de Jalon B)
-- Tests d'erreur réels : réseau coupé, audio silencieux, presse-papiers modifié pendant le collage, fenêtre OpenCode fermée avant l'injection.
-- Mode auto `INJECT_MODE=auto` (test du collage direct).
+- Test 3 presse-papiers modifié pendant le collage : à confirmer par un passage dédié (le log ne montre que des injections avec presse-papiers intact jusqu'ici).
+- Mode auto `INJECT_MODE=auto` (test du collage direct) — ou report en jalon C.
 - Raccourci Windows : fait (Bureau, pythonw, sans terminal).
 
 ## Problèmes ouverts
