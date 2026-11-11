@@ -213,7 +213,8 @@ class Recorder(threading.Thread):
                                 channels=1, dtype="int16", blocksize=1024,
                                 callback=self._cb):
                 self._stop.wait()
-            path = os.path.join(APP_DIR, f"rec_{uuid.uuid4().hex[:8]}.wav")
+            path = os.path.join(APP_DIR, "audio", f"rec_{uuid.uuid4().hex[:8]}.wav")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with wave.open(path, "wb") as w:
                 w.setnchannels(1)
                 w.setsampwidth(2)
@@ -391,6 +392,7 @@ class App:
                 raise ValueError("champ 'text' absent")
             log.info("STT %.0f ms (%.1f Mo)", (time.perf_counter() - t0) * 1000,
                      os.path.getsize(path) / 1e6)
+            log.info("transcription: %s", text[:300])
             self.q.put({"e": "stt_done", "text": text, "path": path, "dur": dur})
         except Exception as e:
             log.exception("stt")
@@ -538,6 +540,12 @@ class App:
             return
         self.last_text = text
         self.last_rec_path = ev["path"]
+        # Transcription réussie → le fichier audio n'est plus nécessaire (SPEC §5)
+        try:
+            os.remove(ev["path"])
+        except OSError:
+            pass
+        self.last_rec_path = None
         if INJECT_MODE == "auto":
             threading.Thread(target=self._inject_thread, args=(text, self.last_target),
                              daemon=True).start()
