@@ -1,0 +1,7 @@
+# VoicePrompt — dépendances (Python 3.10+)
+sounddevice
+numpy
+pystray
+pillow
+requests
+pywin32
