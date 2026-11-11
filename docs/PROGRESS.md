@@ -22,17 +22,17 @@ Jalon B : injection validée en réel (collage OK quand focus OpenCode). STT bas
   - Logs `voiceprompt.log` : timestamps préparation audio / STT / injection, RMS loggée, jamais la clé.
   - Tests composants réels OK : presse-papiers set/get/restore, détection fenêtre active (PID + exe), verify_target (fenêtre vivante vs fenêtre morte), STT HTTP 200.
   - Fix injection : `SendInput` (ctypes) rejeté silencieusement par Windows x64 (struct 32 octets vs 40 exigés) → remplacé par `keybd_event` (pywin32). Injection validée en réel par l'utilisateur, latences STT mesurées 1,5 à 2,4 s pour 12 à 21 s d'audio.
-  - Test des 10 phrases réelles (Groq + prompt, diction en serie) : latences STT 0,39-0,80 s, injection ~0,4 s → total < 1,2 s (objectif < 3 s tenu). Fidélité : 4/10 quasi parfait (#4/#3/#5/#6), 4/10 avec 1-2 homophones (« Gemini »→« Gimini », « DeepSeek »→« DEEPSY », « commit »→« commis », « SQLite »→« SQL »), 2/10 dérivés sérieusement (#2 endpoint/authentification, #10 « base de données »→« l'ambiance du journal », modèle d'y charrier). Détails dans les logs `voiceprompt.log`.
+  - Test des 10 phrases réelles (Groq + prompt, diction en serie) : latences STT 0,39-0,80 s, injection ~0,4 s → total < 1,2 s (objectif < 3 s tenu). Fidélité : 4/10 quasi parfait (#4/#3/#5/#6), 4/10 avec 1-2 homophones (« Gemini »→« Gimini », « DeepSeek »→« DEEPSY », « commit »→« commis », « SQLite »→« SQL »), 2/10 dérivés sérieusement (#2 endpoint/authentification, #10 « base de données »→« l'ambiance du journal »). Détails dans les logs `voiceprompt.log`.
+  - Re-test des phrases #2/#9/#10 le lendemain, micro à ~30 cm (au lieu de 1 m) : **transcription mot pour mot** des trois phrases + « RMS » correctement orthographié sur dictées libres. Cause racine des dérives : signal RMS 0,010 (trop loin) vs 0,037 (proche). Aucun changement de code ; recommandation d'usage : parler près du micro.
   - 10/10 injections réproduites (collage ok, presse-papiers intacts, ~0,4 s).
   - Limité (retour utilisateur) : dérive de transcription sur phrases techniques : « jalon bloquant » → « genre d'encre », « gratuit sur ton FreeLLMAPI Desktop » → « à l'âme d'escroc ». Cause probable : l'adaptateur OVH ne transmet pas le champ `prompt` (contexte lexical indisponible) et Whisper diverge sans contexte. Voir « Problèmes ouverts ».
 - Fichiers : `docs/SPEC.md` (copie ta spec), `docs/STT_SETUP.md`, `.env` (clé + port + cible), `AGENTS.md`, `stt_test.py` (script de re-test).
 - `.gitignore` créé avant tout commit éventuel (`.env` exclu).
 
 ## Reste à faire (fin de Jalon B)
-- Itération fidélité : enrichir le prompt (endpoint, authentification, base de données, script, branche…) et re-tester #2 et #10 redites.
 - Tests d'erreur réels : réseau coupé, audio silencieux, presse-papiers modifié pendant le collage, fenêtre OpenCode fermée avant l'injection.
 - Mode auto `INJECT_MODE=auto` (test du collage direct).
-- Raccourci Windows (pythonw, sans terminal) à la fin du jalon.
+- Raccourci Windows : fait (Bureau, pythonw, sans terminal).
 
 ## Problèmes ouverts
 - (Résolu 10/11) L'adaptateur OVH ne transmettait pas le champ `prompt` ; le passage à Groq (clé gratuite de l'utilisateur dans FreeLLMAPI) rend le contexte lexical effectif : « Prisma », « Next.js », « GitHub » correctement transcrits, latence 1,2 s pour 19 s d'audio.
@@ -43,7 +43,7 @@ Jalon B : injection validée en réel (collage OK quand focus OpenCode). STT bas
 - Passage par FreeLLMAPI local (jamais d'appel direct fournisseur) : auth centralisée, clé `.env` unique, selon règle « commencer par FreeLLMAPI ».
 - `model=whisper-large-v3` explicite plutôt que `auto` : `auto` irait sur Groq *turbo* (plus rapide mais moins fidèle, vérifié), le filtre par id garde `whisper-large-v3`.
 - Prompt lexical = les 20 termes de SPEC §3, envoyés sur chaque requête : validé par A/B réel (améliore sans fausser).
-- Test des 10 phrases : les dérives homophones (« commis » pour « commit », « Gimini ») subsistent en diction rapide ; le prompt aide sur les termes exacts mais ne gomme pas toutes les prononciations. Décision ouverte : enrichir le prompt, ou statuer que ce niveau de fidélité suffit (aucune reformulation automatique — SPEC).
+- Test des 10 phrases : les dérives homophones étaient dues à un signal trop faible (micro à 1 m, RMS 0,010). À ~30 cm (RMS 0,037), les phrases #2/#9/#10 sont transcrites mot pour mot — le prompt n'a pas eu besoin d'être enrichi. (Résolu 11/11.)
 - Lecture de la clé via sqlite en lecture seule puis copie dans `.env` : clé locale, aucun achat, aucune soumission de clé à un service tiers.
 - Jalon B : presse-papiers et bips via modules embarqués (pywin32, winsound) plutôt que bibliothèques tierces supplémentaires — moins de dépendances, même comportement.
 - Jalon B : ajout de l'entrée « Réessayer la transcription » dans le menu de l'icône — exigé par SPEC §3 (« l'audio reste disponible pour un nouvel essai »).
