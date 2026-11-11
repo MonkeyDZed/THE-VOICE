@@ -604,6 +604,7 @@ class App:
         beep_err()
 
     def _ev_inject_fail(self, ev):
+        log.info("injection echouee: %s", ev["msg"])
         self.set_state("erreur")
         self.icon.notify(f"Échec de l'injection : {ev['msg']}\n"
                          "La transcription est conservée — menu de l'icône → "
