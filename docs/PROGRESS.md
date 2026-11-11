@@ -35,7 +35,7 @@ Jalon B : injection validée en réel (collage OK quand focus OpenCode). STT bas
 - `.gitignore` créé avant tout commit éventuel (`.env` exclu).
 
 ## Reste à faire (fin de Jalon B)
-- Test 3 presse-papiers modifié pendant le collage : à confirmer par un passage dédié (le log ne montre que des injections avec presse-papiers intact jusqu'ici).
+- **Test 3 presse-papiers modifié pendant le collage : EN SUSPENS (sur demande utilisateur, 11/11).** La branche « restauration » est déjà validée en réel (copie avant Injecter → ancien texte restauré, `clip_modifié=False`, log 23:41:10). La branche « alerte » (presse-papiers modifié pendant la fenêtre de collage) n'est pas praticable à la main en 300 ms ; un test élargi (`PASTE_RESTORE_DELAY_MS=5000` déjà posé dans `.env`, app relancée) est prêt mais non exécuté. À exécuter ou à clore plus tard ; le code correspondant (`_inject_thread`, branche `now != text`) reste en place.
 - Mode auto `INJECT_MODE=auto` (test du collage direct) — ou report en jalon C.
 - Raccourci Windows : fait (Bureau, pythonw, sans terminal).
 
