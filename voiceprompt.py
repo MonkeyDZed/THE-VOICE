@@ -370,14 +370,18 @@ class App:
             self.recorder.stop_click()
             return
         target = get_foreground_target()
+        # SPEC §5 : quand une fenêtre de VoicePrompt elle-même est au premier plan
+        # (fenêtre de confirmation), on garde la cible mémorisée d'origine.
+        if target and int(target["pid"]) == int(kernel32.GetCurrentProcessId()):
+            target = self.last_target
         self.last_target = target
         beep_start()
         self.recorder = Recorder(self._rec_result)
         self.recorder.start()
         self.set_state("enregistrement")
         if not target_is_opencode(target):
-            self.icon.notify("Fenêtre active ≠ OpenCode — l'injection se fera sur la "
-                             "fenêtre mémorisée (autorisé).", "VoicePrompt")
+            self.icon.notify("Fenêtre active ≠ OpenCode — le texte sera collé dans la "
+                             "fenêtre OpenCode mémorisée (autorisé).", "VoicePrompt")
 
     def _rec_result(self, path, rms, dur, err):
         self.recorder = None
@@ -459,8 +463,9 @@ class App:
         w.attributes("-topmost", True)
         self._place_bottom_right(w)
         if warn:
-            tk.Label(w, text=f"⚠ Fenêtre d'origine ≠ {TARGET_PROCESS} — "
-                             "l'injection se fera sur la fenêtre déjà mémorisée.",
+            tk.Label(w, text=f"⚠ Fenêtre active ≠ {TARGET_PROCESS} — le texte sera "
+                             "collé dans la fenêtre OpenCode mémorisée au début de "
+                             "l'enregistrement.",
                      bg="#1e1e1e", fg="#e0a800", wraplength=400).pack(anchor="w",
                                                                       pady=(0, 4))
             if target:
